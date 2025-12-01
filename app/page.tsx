@@ -25,7 +25,7 @@ export default function Home() {
         <img className="mx-auto w-full" src="/assets/E-Wallet-pana.png" alt="Description of image" />
 
           <Button 
-          onClick={() => router.push('/admin/login')}
+          onClick={() => router.push('/auth/login')}
           className="mx-auto h-12 mt-2 w-full text-xl text-center bg-blue-600 hover:bg-blue-700 text-white"
     
           >

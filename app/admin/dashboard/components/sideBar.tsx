@@ -72,7 +72,7 @@ export default function SideBar() {
             <span>View Companies</span>
           </Link>
           {/* Onboard New Client - Only for Makers */}
-          {user?.role === 'maker' && (
+          {user?.role === 'admin1' && (
             <Link href="/admin/dashboard/clients/onboard" className={getLinkClassName("/admin/dashboard/clients/onboard")}>
               <FilePlus className="w-5 h-5" />
               <span>Onboard New Company</span>

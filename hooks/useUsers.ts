@@ -20,6 +20,7 @@ export const useUsers = (
   const queryClient = useQueryClient();
    // Get token from auth context or cookies
   const authToken = Cookies.get('admin_token');
+  console.log("auth token", authToken)
 
   // 1️⃣ Fetch users
   const { data, isLoading, error } = useQuery({

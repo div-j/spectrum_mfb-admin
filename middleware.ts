@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
   '/auth/activate',
   '/auth/verify-otp',
   '/error',
+  "/login"
 ]
 
 // Helper: Check if path is public
@@ -43,6 +44,6 @@ export function middleware(req: NextRequest) {
 // Apply the middleware to *all pages* except static assets & API routes
 export const config = {
   matcher: [
-    '/((?!_next|static|images|favicon.ico|api).*)',
+    '/((?!_next/static|_next/image|_next|static|assets|public|images|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|api).*)',
   ],
-}
+};
