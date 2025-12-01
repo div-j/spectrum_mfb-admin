@@ -14,7 +14,7 @@ import { Company } from '@/lib/interface'
 import { useRouter } from 'next/navigation'
 
 export default function ManageCompanies() {
-  const { profile } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
   const [filteredCompany, setfilteredCompany] = useState<Company[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -122,7 +122,7 @@ export default function ManageCompanies() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Manage Companies</h1>
-        {profile?.role === 'maker' && (
+        {user?.role === 'admin1' && (
           <Button onClick={() => router.push('/admin/dashboard/clients/onboard')}>
             Add Company
           </Button>

@@ -27,6 +27,9 @@ import type { User as AdminUser } from '@/lib/interface'
 import CreateUserModal from './users/components/create-user-modal'
 import { useUsers } from '@/hooks/useUsers'
 import { UserResponse } from '@/lib/interface'
+import { useAuth } from '@/providers/auth-provider'
+import Link from 'next/link'
+import { getRoleBadge } from './components/getBadge'
 
 type UIUser = Partial<UserResponse>
 
@@ -132,6 +135,7 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const {user} = useAuth()
 
   useEffect(() => {
     // Normalize users from hook
@@ -156,21 +160,7 @@ export default function AdminDashboard() {
     setFilteredUsers(filtered)
   }, [users, searchTerm, roleFilter])
 
-  const getRoleBadge = (role: string) => {
-    const variants = {
-      admin: "bg-purple-100 text-purple-700 border-purple-200",
-      authorizer: "bg-blue-100 text-blue-700 border-blue-200",
-      maker: "bg-orange-100 text-orange-700 border-orange-200",
-      initiator: "bg-green-100 text-green-700 border-green-200",
-      reviewer: "bg-yellow-100 text-yellow-700 border-yellow-200"
-    }
-
-    return (
-      <Badge variant="outline" className={variants[role as keyof typeof variants]}>
-        {role.charAt(0).toUpperCase() + role.slice(1)}
-      </Badge>
-    )
-  }
+ 
 
   const handleUserAction = async (action: string, userId?: string | number) => {
     if (userId === undefined || userId === null) return
@@ -230,11 +220,21 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
           <p className="text-muted-foreground">Manage Companies, Corporate Users and System settings</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
+        {user?.role =="admin1"?
+       (<> <Button onClick={() => setIsModalOpen(true)}>
           <UserPlus className="w-4 h-4 mr-2" />
           Add User
         </Button>
         <CreateUserModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+     </>
+     ):(<>
+     <Link href="/users" className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md">
+          <UserPlus className="w-4 h-4 mr-2" />
+        Go to Users
+        </Link>
+     </>)
+    
+    }
       </div>
 
       {/* Stats Cards */}
@@ -360,7 +360,7 @@ export default function AdminDashboard() {
                   <TableHead>Company</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Activated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {/* <TableHead className="text-right">Actions</TableHead> */}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -394,7 +394,7 @@ export default function AdminDashboard() {
                     <TableCell className="text-sm text-muted-foreground">
                       {user.activated ? "Yes" : "No"}
                     </TableCell>
-                    <TableCell className="text-right">
+                    {/* <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button variant="ghost" size="sm">
                           <Eye className="w-4 h-4" />
@@ -411,7 +411,7 @@ export default function AdminDashboard() {
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
-                    </TableCell>
+                    </TableCell> */}
                   </TableRow>
                 ))}
               </TableBody>

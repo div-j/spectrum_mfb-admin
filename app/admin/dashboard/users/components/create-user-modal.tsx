@@ -65,7 +65,6 @@ export default function CreateUserModal({
   );
   const { companies } = useCompany();
 
-  console.log("Companies fetched:", companies);
 
   const selectedCompany = companies?.find(
     (c: any) => c.id?.toString() === selectedCompanyId

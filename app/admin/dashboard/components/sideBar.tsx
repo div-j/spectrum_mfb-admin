@@ -16,16 +16,19 @@ import Link from "next/link"
 import { useAuth } from "@/providers/auth-provider"
 import { useRouter, usePathname } from "next/navigation"
 import CreateUserModal from '../users/components/create-user-modal'
+import Cookies from 'js-cookie';
+
 
 export default function SideBar() {
-  const { profile, signOut } = useAuth()
+  const { user, signOut } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [isModalOpen, setIsModalOpen] = React.useState(false)  // Add state for modal
+  console.log("User Role in SideBar:", user);
 
 
   const handleLogout = async () => {
-    await signOut()
+     signOut()
     router.push("/auth/login")
   }
 
@@ -37,9 +40,9 @@ export default function SideBar() {
   return `${base} ${pathname === href ? active : inactive}`
 }
 
-  const getUserInitials = () => profile?.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "U"
-  const getUserName = () => profile?.name || "Admin"
-  const getUserRole = () => profile?.role?.toUpperCase() 
+  const getUserInitials = () => user?.email?.split(" ").map(n => n[0]).join("").toUpperCase() || "U"
+  const getUserName = () => user?.email || "Admin"
+  const getUserRole = () => user?.role?.toUpperCase() 
   console.log(getUserRole())
 
   return (
@@ -72,7 +75,7 @@ export default function SideBar() {
             <span>View Companies</span>
           </Link>
           {/* Onboard New Client - Only for Makers */}
-          {profile?.role === 'maker' && (
+          {user?.role === 'maker' && (
             <Link href="/admin/dashboard/clients/onboard" className={getLinkClassName("/admin/dashboard/clients/onboard")}>
               <FilePlus className="w-5 h-5" />
               <span>Onboard New Company</span>
@@ -88,7 +91,7 @@ export default function SideBar() {
             <span>Manage Users</span>
           </Link>
           {/* New User Button - Only for Makers */}
-          {profile?.role === 'maker' && (
+          {user?.role === 'admin1' && (
             <Button
               variant="ghost"
               className={'flex items-center justify-start space-x-2 px-3 py-2 rounded-lg transition text-sm font-medium w-full'}
@@ -101,7 +104,7 @@ export default function SideBar() {
         </div>
 
         {/* Approvals Section - Only for Authorizers */}
-        {profile?.role === 'authorizer' && (
+        {user?.role === 'admin2' && (
           <div className="pt-3">
             <p className="text-xs font-semibold text-muted-foreground px-3 mb-1">Approvals</p>
             <Link href="/admin/dashboard/approvals" className={getLinkClassName("/admin/dashboard/approvals")}>
@@ -112,7 +115,7 @@ export default function SideBar() {
         )}
       </nav>
 
-      {/* Profile + Logout */}
+      {/* user + Logout */}
       <div className="p-4 border-t border-border">
         <div className="flex items-center space-x-3 mb-3">
           <Avatar className="w-10 h-10">
@@ -125,11 +128,11 @@ export default function SideBar() {
         </div>
 
         <div className="space-y-2">
-          <Link href="/admin/dashboard/profile">
+          {/* <Link href="/admin/dashboard/user">
             <Button variant="ghost" size="sm" className="w-full justify-start">
-              <Settings className="w-4 h-4 mr-2" /> Profile
+              <Settings className="w-4 h-4 mr-2" /> user
             </Button>
-          </Link>
+          </Link> */}
 
           <Button
             variant="ghost"

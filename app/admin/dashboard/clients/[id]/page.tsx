@@ -10,12 +10,14 @@ import { useParams, useRouter } from 'next/navigation'
 import { Company } from '@/lib/interface'
 import { useCompany } from '@/hooks/useCompany'
 import { formatDate, formatCurrency } from '@/lib/utils'
+import { useAuth } from '@/providers/auth-provider'
 
 export default function ClientDetailsPage() {
   const { id } = useParams()
   const router = useRouter()
   const { companies, isLoading, deleteCompany } = useCompany()
   const [company, setCompany] = useState<Company | null>(null)
+  const {user} = useAuth()
 
   useEffect(() => {
     if (companies && id) {
@@ -190,12 +192,16 @@ export default function ClientDetailsPage() {
         <Button variant="outline" onClick={() => router.back()}>
           Close
         </Button>
-        <Button className="gap-2">
-          Edit Company
-        </Button>
-        <Button variant="destructive" onClick={handleDelete}>
-          Delete Company
-        </Button>
+     {user?.role === "admin1" && (
+          <>
+            <Button className="gap-2">
+              Edit Company
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete Company
+            </Button>
+          </>
+        )}
       </div>
     </div>
   )

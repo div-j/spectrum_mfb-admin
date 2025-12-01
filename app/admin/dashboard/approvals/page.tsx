@@ -1,157 +1,129 @@
-'use client'
+"use client";
 
-import React, { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Loader2 } from 'lucide-react'
-import { useAuth } from '@/providers/auth-provider'
-import ApproveModal from './components/approve-modal'
+import React from "react";
+import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Loader2, UserCheck, Clock } from "lucide-react";
+import { useUsers } from "@/hooks/useUsers";
+import { useAuth } from "@/providers/auth-provider";
+import { getRoleBadge } from "../components/getBadge";
 
-interface PendingAction {
-  id: string
-  type: string
-  description: string
-  initiatedBy: string
-  createdAt: string
-  status: string
-  approvedBy?: string
-  approvedAt?: string
-  approverComment?: string
-  payload: any
-}
+export default function PendingApprovalsPage() {
+  const { user: profile } = useAuth();
 
-export default function ApprovalsPage() {
-  const { profile } = useAuth()
-  const [actions, setActions] = useState<PendingAction[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedAction, setSelectedAction] = useState<PendingAction | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
+  // Fetch only inactive users
+  const { users, isLoading } = useUsers("inactive");
+  console.log(users)
 
-  useEffect(() => {
-    fetchPendingActions()
-  }, [])
+  const pending = (users ?? []).filter(
+    (u: any) =>
+      u.activated === false ||
+      u.activated === 0 ||
+      u.status === "inactive" ||
+      u.status === "pending"
+  );
 
-  const fetchPendingActions = async () => {
-    try {
-      const response = await fetch('/admin/api/mock/pending-actions')
-      const data = await response.json()
-      setActions(data.data || [])
-    } catch (error) {
-      console.error('Failed to fetch pending actions:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleReview = (action: PendingAction) => {
-    setSelectedAction(action)
-    setModalOpen(true)
-  }
-
-  const handleModalClose = () => {
-    setModalOpen(false)
-    setSelectedAction(null)
-  }
-
-  const handleActionProcessed = () => {
-    fetchPendingActions() // Refresh the list
-  }
-
-  if (profile?.role !== 'authorizer') {
+  if (profile?.role !== "admin2") {
     return (
       <div className="p-6">
-        <Card>
+        <Card className="border-red-200">
           <CardContent className="text-center py-12">
-            <p className="text-red-500">You do not have permission to view approvals.</p>
+            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <UserCheck className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Access Denied</h3>
+            <p className="text-red-600">Only authorizers can view pending approvals.</p>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    )
-  }
+
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Pending Approvals</h1>
-          <p className="text-sm text-muted-foreground">Review and approve pending actions</p>
+          <h1 className="text-2xl font-semibold">Pending User Approvals</h1>
+          <p className="text-sm text-muted-foreground">
+            These users are inactive and need your approval.
+          </p>
         </div>
+
+        <Badge variant="secondary" className="gap-1">
+          <Clock className="w-3 h-3" />
+          {pending?.length || 0} Pending
+        </Badge>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Actions Awaiting Approval</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            Inactive Users Awaiting Approval
+          </CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Initiated By</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {actions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    No pending actions
-                  </TableCell>
-                </TableRow>
-              ) : (
-                actions.map((action) => (
-                  <TableRow key={action.id}>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {action.type.replace('_', ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{action.description}</TableCell>
-                    <TableCell>{action.initiatedBy}</TableCell>
-                    <TableCell>{new Date(action.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge variant={action.status === 'pending' ? 'secondary' : 'default'}>
-                        {action.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {action.status === 'pending' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleReview(action)}
-                        >
-                          Review
-                        </Button>
-                      )}
-                    </TableCell>
+
+        <CardContent>
+          {pending.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <UserCheck className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-green-800 mb-2">All Users Active!</h3>
+              <p className="text-green-600">There are no inactive users to approve.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                </TableHeader>
+
+                <TableBody>
+                  {pending.map((user: any) => (
+                    <TableRow key={user?.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="font-medium">{user?.name}</div>
+                      </TableCell>
+
+                      <TableCell>{user?.email}</TableCell>
+
+                      <TableCell>{user?.company_name|| "N/A"}</TableCell>
+
+                      <TableCell>
+                        {getRoleBadge(user?.status)}
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <Link href={`/admin/dashboard/users/${user.id}`}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="hover:bg-primary hover:text-primary-foreground"
+                          >
+                            Take Action
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      <ApproveModal
-        open={modalOpen}
-        action={selectedAction}
-        onOpenChange={handleModalClose}
-        onSuccess={handleActionProcessed}
-      />
     </div>
-  )
+  );
 }

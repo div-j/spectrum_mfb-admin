@@ -21,6 +21,7 @@ export default function UserTable({ users, isLoading, onAction }: Props) {
             <TableHead>Role</TableHead>
             <TableHead>Company</TableHead>
             <TableHead>Phone</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Activated</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -49,6 +50,9 @@ export default function UserTable({ users, isLoading, onAction }: Props) {
                 </TableCell>
                 <TableCell>
                   <Skeleton className="h-4 w-24 rounded" />
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  <Skeleton className="h-4 w-16 rounded" />
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   <Skeleton className="h-4 w-8 rounded" />

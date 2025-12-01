@@ -17,12 +17,12 @@ const api = axios.create({
    },
 })
 
+
+
 type AdminUser = {
-  id: string
-  email: string
-  name: string
+  id: string,
+  email: string,
   role: string
-  phone: string
 }
 
 const adminData = {
@@ -43,7 +43,6 @@ interface AuthContextType {
   user: AdminUser | null
   profile: adminProfile | null
   token: string | null
-  role: string | null // Add role to interface
   loading: boolean
   error: string | null
   signUp: (email: string, password: string, role: "admin1" | "admin2") => Promise<adminResp | null> // Fix type
@@ -61,7 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [role, setRole] = useState<string | null>(null)
 
    // Sign-up Admin
   const signUp = async (email: string, password: string, role: "admin1" | "admin2"): Promise<adminResp | null> => {
@@ -146,18 +144,21 @@ const activateAdmin = async (email: string, otp: string): Promise<adminResp | nu
       if(response.status == 201) {
 
         const token = response.data.data.authentication_token.token
-        const userRole = response.data.data.role
         
+        const userData = {
+        id: response.data.data.user_id,
+        email: response.data.data.user_email,
+        role: response.data.data.role,
+      }
         // Set state first
         setToken(token)
-        setRole(userRole)
-        
+        setUser(userData)
+
         // Then set cookies
         Cookies.set('admin_token', token, { expires: 1 })
-        Cookies.set('user_role', userRole, { expires: 1 })
-        
+        Cookies.set('admin_user', JSON.stringify(userData), { expires: 1 })
+
         console.log('Token set:', token)
-        console.log('Role set:', userRole)
 
         toast.success('OTP verification successful! You are now logged in.')
 
@@ -178,22 +179,25 @@ const activateAdmin = async (email: string, otp: string): Promise<adminResp | nu
     setUser(null)
     setProfile(null)
     setToken(null)
-    setRole(null)
+    setUser(null)
     Cookies.remove('admin_token')
-    Cookies.remove('user_role') // Remove role cookie
+    Cookies.remove('admin_user') // Remove role cookie
     setLoading(false)
   }
 
   useEffect(() => {
     const savedToken = Cookies.get('admin_token')
-    const savedRole = Cookies.get('user_role') // Retrieve role from cookie
+     const savedUser = Cookies.get('admin_user')
+    
     
     if (savedToken) {
       setToken(savedToken)
     }
-    if (savedRole) {
-      setRole(savedRole)
+
+    if (savedUser) {
+      setUser(JSON.parse(savedUser))
     }
+    
     
     // Set default admin profile for dev/fallback
     setProfile({
@@ -210,7 +214,6 @@ const activateAdmin = async (email: string, otp: string): Promise<adminResp | nu
     user,
     profile,
     token,
-    role, // Add role to value
     loading,
     error,
     signUp,

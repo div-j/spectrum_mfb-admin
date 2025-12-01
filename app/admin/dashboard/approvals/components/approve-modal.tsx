@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { useAuth } from '@/providers/auth-provider'
+import { useApprovals } from '@/hooks/useApprovals'
 
 interface PendingAction {
   id: string
@@ -32,6 +33,7 @@ interface ApproveModalProps {
 
 export default function ApproveModal({ open, action, onOpenChange, onSuccess }: ApproveModalProps) {
   const { profile } = useAuth()
+  const { approveAction, rejectAction, isApproving, isRejecting } = useApprovals()
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -42,40 +44,16 @@ export default function ApproveModal({ open, action, onOpenChange, onSuccess }: 
 
     setLoading(true)
     try {
-      const url = `/admin/api/mock/pending-actions/${decision}`
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          actionId: action.id,
-          approverId: profile.id,
-          comment: comment.trim()
-        }),
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        toast.success(
-          `Action ${decision}d successfully!`,
-          {
-            description: `${action.description} has been ${decision}d.`,
-          }
-        )
-        onSuccess()
-        onOpenChange(false)
-        setComment('')
+      if (decision === 'approve') {
+        await approveAction({ actionId: action.id, comment: comment.trim() })
       } else {
-        toast.error(`Failed to ${decision} action`, {
-          description: result.message || 'Please try again.',
-        })
+        await rejectAction({ actionId: action.id, comment: comment.trim() })
       }
+      onSuccess()
+      onOpenChange(false)
+      setComment('')
     } catch (error) {
-      toast.error(`Failed to ${decision} action`, {
-        description: 'Network error. Please check your connection and try again.',
-      })
+      // Error handling is done in the hook
     } finally {
       setLoading(false)
     }
@@ -250,22 +228,22 @@ export default function ApproveModal({ open, action, onOpenChange, onSuccess }: 
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={loading}
+              disabled={loading || isApproving || isRejecting}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={() => handleDecision('reject')}
-              disabled={loading}
+              disabled={loading || isApproving || isRejecting}
             >
-              {loading ? 'Processing...' : 'Reject'}
+              {isRejecting ? 'Rejecting...' : 'Reject'}
             </Button>
             <Button
               onClick={() => handleDecision('approve')}
-              disabled={loading}
+              disabled={loading || isApproving || isRejecting}
             >
-              {loading ? 'Processing...' : 'Approve'}
+              {isApproving ? 'Approving...' : 'Approve'}
             </Button>
           </div>
         </div>

@@ -24,6 +24,7 @@ export interface CorporateUser {
   email: string
   phone?: string
   roles: ('initiator' | 'reviewer' | 'approver')[]
+  status?: string
 }
 
 // Full payload to create corporate account/users
@@ -86,7 +87,7 @@ export interface Pagination {
 export interface UsersResponse {
   status: string;
   data: {
-    users: CorporateUser[];
+    users: UserResponse[];
     pagination: Pagination;
   };
 }

@@ -20,7 +20,6 @@ export const useUsers = (
   const queryClient = useQueryClient();
    // Get token from auth context or cookies
   const authToken = Cookies.get('admin_token');
-console.log("Auth Token in useUsers:", authToken);
 
   // 1️⃣ Fetch users
   const { data, isLoading, error } = useQuery({
@@ -39,13 +38,13 @@ console.log("Auth Token in useUsers:", authToken);
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",
-             Authorization: `Bearer ${authToken}`,
-            'spectrumz-mobile': API_KEY,
+            //  Authorization: `Bearer ${authToken}`,
+            // 'spectrumz-mobile': API_KEY,
             // Authorization: `Bearer ${localStorage.getItem("token")}`, // adjust if token is from context
           },
         });
 
-        console.log(data.users)
+        // console.log(data.users)
 
         // API may return a wrapped payload like { data: { users: [...] } }
         // Normalize to return the users array when possible, otherwise return the raw data
@@ -114,7 +113,27 @@ console.log("Auth Token in useUsers:", authToken);
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users", companyId] }),
   });
 
-  // Optional: you could add role toggles or status toggles here, same pattern
+  
+   // 3️⃣ Update user status (activate/deactivate)
+  const updateUserStatusMutation = useMutation({
+    mutationFn: async ({ userId, activated }: { userId: number; activated: boolean }) => {
+      const { data } = await axios.post("/api/v1/admin/users/status", { user_id: userId, activated }, {
+        headers: {
+          "Content-Type": "application/json",
+          // Authorization: `Bearer ${authToken}`,
+        },
+      });
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("User status updated successfully!");
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (err: any) => {
+      console.error("❌ Error updating user status:", err.response?.data || err.message);
+      toast.error(err.response?.data?.message || "Failed to update user status");
+    },
+  });
 
   return {
     users: data?.users,
@@ -123,6 +142,9 @@ console.log("Auth Token in useUsers:", authToken);
     createUser: createUserMutation.mutateAsync,
     updateUser: updateUserMutation.mutateAsync,
     deleteUser: deleteUserMutation.mutateAsync,
+    updateUserStatus: updateUserStatusMutation.mutateAsync,
+    isUpdatingStatus: updateUserStatusMutation.isPending,
+
     // mutation states for UI feedback
     isCreating: createUserMutation.isPending,
     isUpdating: updateUserMutation.isPending,

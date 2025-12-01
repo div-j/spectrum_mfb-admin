@@ -17,7 +17,6 @@ export const useCompany = (
   const queryClient = useQueryClient();
    // Get token from auth context or cookies
   const authToken =  Cookies.get('admin_token');
-  console.log("Auth Token in useCompany:", authToken);
 
   // 1️⃣ Fetch companies
   const { data, isLoading, error } = useQuery({
@@ -35,12 +34,11 @@ export const useCompany = (
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`, 
-            'spectrumz-mobile': API_KEY,
+            // Authorization: `Bearer ${authToken}`, 
+            // 'spectrumz-mobile': API_KEY,
           },
         });
 
-        console.log(data)
 
         return data
 
