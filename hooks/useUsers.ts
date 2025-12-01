@@ -6,6 +6,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { User } from "@/lib/interface";
 import axios from "axios";
+import { useAuth } from "@/providers/auth-provider";
+import Cookies from 'js-cookie';
+const API_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY;
 
 export const useUsers = (
   companyId?: string,
@@ -13,7 +16,11 @@ export const useUsers = (
   page: number = 1,
   limit: number = 10
 ) => {
+  const { token } = useAuth();
   const queryClient = useQueryClient();
+   // Get token from auth context or cookies
+  const authToken = Cookies.get('admin_token');
+console.log("Auth Token in useUsers:", authToken);
 
   // 1️⃣ Fetch users
   const { data, isLoading, error } = useQuery({
@@ -29,8 +36,11 @@ export const useUsers = (
 
         // Call API
         const { data } = await axios.get(`/api/v1/admin/users?${params.toString()}`, {
+          withCredentials: true,
           headers: {
             "Content-Type": "application/json",
+             Authorization: `Bearer ${authToken}`,
+            'spectrumz-mobile': API_KEY,
             // Authorization: `Bearer ${localStorage.getItem("token")}`, // adjust if token is from context
           },
         });
@@ -42,31 +52,35 @@ export const useUsers = (
         return data
     
     },
-    onError: (err: any) => {
-      console.error("❌ Failed to fetch users:", err.response?.data || err.message);
-        toast.error(err.response?.data?.message || "Failed to fetch users");
-
-    }
+    enabled: !!authToken 
+    
   });
 
   // 2️⃣ Create user
   const createUserMutation = useMutation({
     mutationFn: async (newUser: User) => {
 
-      try {
+      
         console.log("Payload to gateway:", newUser);
-        const { data } = await axios.post("/api/v1/admin/register/corporate", newUser);
+        const { data } = await axios.post("/api/v1/admin/register/corporate", newUser,
+          {
+          headers: {
+            "Content-Type": "application/json",
+             Authorization: `Bearer ${authToken}`,
+            // Authorization: `Bearer ${localStorage.getItem("token")}`, // adjust if token is from context
+          },
+        }
+        );
         // toast.success("User created successfully!");
         return data;
-      }  catch (err: any) {
-  console.error("❌ Full error:", err.response?.data || err.message);
-  toast.error(err.response?.data?.message || "Failed to create company");
-  throw err;
-}
-    },
+      },
      onSuccess: () => {
     toast.success("User created successfully!"); // now displays after success
     queryClient.invalidateQueries({ queryKey: ["users", companyId] });
+  },
+  onError: (err: any) => {
+    console.error("❌ Full error:", err.response?.data || err.message);
+    toast.error(err.response?.data?.message || "Failed to create user");
   },
   });
 

@@ -6,22 +6,29 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 
- export const formatCurrency = (amount: number) => {
+export const formatCurrency = (amount: string | number | undefined) => {
+    if (!amount) return 'N/A'
+    const numAmount = typeof amount === 'string' ? parseInt(amount) : amount
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
-      minimumFractionDigits: 0
-    }).format(amount)
+      minimumFractionDigits: 0,
+    }).format(numAmount)
   }
 
- export const formatDate = (dateString: string) => {
+
+ export const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
-      day: 'numeric', 
+      day: 'numeric',
+      year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
+
+
 
 
 

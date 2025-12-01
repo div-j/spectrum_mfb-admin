@@ -1,40 +1,40 @@
 "use client"
 
 import React, { useState } from "react"
-import { Building2, Mail, ArrowRight, ArrowLeft } from "lucide-react"
+import { Building2, Mail, Lock, ArrowRight, ArrowLeft, UserCheck } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/providers/auth-provider"
 
-export default function AdminLogin() {
+export default function AdminSignup() {
   const router = useRouter()
-  const { login, verifyOtp, token,error,loading: isLoading} = useAuth()
-  const [step, setStep] = useState<"email" | "otp">("email")
+  const { signUp, activateAdmin, error: authError, loading } = useAuth()
+
+  const [step, setStep] = useState<"signup" | "activate">("signup")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [role, setRole] = useState<"admin1" | "admin2" | "">("")
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
-  
 
-  // Step 1: Send OTP
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  // Step 1: Sign up
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-      const result = await login(email, password)
-      console.log("Login result:", result)
-      if(result){
-      setStep("otp") // Only proceed to next step on success
-      }
-   
+
+    // Include role in signup
+    const result = await signUp(email, password, role as "admin1" | "admin2")
+    if (result && result.status_code === "00") {
+        setStep("activate") 
+    }
   }
 
   // OTP input change
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return
-
     const newOtp = [...otp]
     newOtp[index] = value
     setOtp(newOtp)
@@ -46,17 +46,16 @@ export default function AdminLogin() {
     }
   }
 
-  // Step 2: Verify OTP
-  const handleOtpSubmit = async (e: React.FormEvent) => {
+  // Step 2: Activate admin
+  const handleActivateSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const otpToken = otp.join("")
-   
 
-   
-      await verifyOtp(email, password, otpToken)
-      router.push("/admin/dashboard") // redirect after successful login
-
+    const result = await activateAdmin(email, otpToken)
+    if (result && result.status_code === "00") {
+      router.push("/auth/login") // Redirect after successful activation
+    }
   }
 
   return (
@@ -71,21 +70,21 @@ export default function AdminLogin() {
         <div className="w-full max-w-md mx-auto">
           {/* Back Navigation */}
           <div className="mb-6">
-            {step === "email" ? (
+            {step === "signup" ? (
               <Link
                 href="/"
                 className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                <ArrowLeft className="w-5 h-5  mr-2 text-black" />
+                <ArrowLeft className="w-5 h-5 mr-2 text-black" />
                 Back to Home
               </Link>
             ) : (
               <button
-                onClick={() => setStep("email")}
+                onClick={() => setStep("signup")}
                 className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Email
+                Back to Signup
               </button>
             )}
           </div>
@@ -97,18 +96,18 @@ export default function AdminLogin() {
               </div>
               <h1 className="text-2xl font-bold text-foreground">Spectrum MFB</h1>
             </div>
-            <p className="text-muted-foreground">Admin Portal</p>
+            <p className="text-muted-foreground">Admin Registration</p>
           </div>
 
-          {/* Email Step */}
-          {step === "email" ? (
+          {/* Signup Step */}
+          {step === "signup" ? (
             <Card>
               <CardHeader>
-                <CardTitle>Sign In</CardTitle>
-                <CardDescription>Enter your email and password to receive a one-time password</CardDescription>
+                <CardTitle>Create Account</CardTitle>
+                <CardDescription>Enter your details to register as admin</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleEmailSubmit} className="space-y-4">
+                <form onSubmit={handleSignupSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
                     <div className="relative">
@@ -127,43 +126,77 @@ export default function AdminLogin() {
 
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      required
-                    />
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
 
-                  {error && (
-                    <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Admin Role</Label>
+                    <Select value={role} onValueChange={(value: "admin1" | "admin2") => setRole(value)} required>
+                      <SelectTrigger className="w-full">
+                        <div className="flex items-center">
+                          <UserCheck className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <SelectValue placeholder="Select admin role" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin1">
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">Admin 1</span>
+                            <span className="text-sm text-muted-foreground">Maker - Create transactions</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="admin2">
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">Admin 2</span>
+                            <span className="text-sm text-muted-foreground">Authorizer - Approve transactions</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {authError && (
+                    <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{authError}</div>
                   )}
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Sending OTP..." : "Send OTP"}
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={loading || !role}
+                  >
+                    {loading ? "Creating account..." : "Sign Up"}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </form>
                 <div>
-                  <p className="text-sm text-center text-muted-foreground mt-4">Don't have an account?{" "}
-                    <Link href="/auth/signup" className="text-primary hover:underline">
-                      Sign up
+                  <p className="text-sm text-center text-muted-foreground mt-4">Already have an account?{" "}
+                    <Link href="/auth/login" className="text-primary hover:underline">
+                      Sign in
                     </Link>
                   </p>
-                </div>
+                </div>  
               </CardContent>
             </Card>
           ) : (
-            // OTP Step
+            // ...existing OTP activation step remains the same...
             <Card>
               <CardHeader>
-                <CardTitle>Enter OTP</CardTitle>
+                <CardTitle>Activate Account</CardTitle>
                 <CardDescription>Enter the 6-digit OTP sent to your email</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleOtpSubmit} className="space-y-6">
+                <form onSubmit={handleActivateSubmit} className="space-y-6">
                   <div className="flex justify-center gap-2">
                     {otp.map((digit, index) => (
                       <Input
@@ -180,24 +213,24 @@ export default function AdminLogin() {
                     ))}
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading || otp.some((d) => !d)}>
-                    {isLoading ? "Verifying..." : "Sign In"}
+                  <Button type="submit" className="w-full" disabled={loading || otp.some((d) => !d)}>
+                    {loading ? "Activating..." : "Activate"}
                   </Button>
 
-                  {error && (
-                    <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>
+                  {authError && (
+                    <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{authError}</div>
                   )}
 
                   <div className="text-center mt-4">
                     <button
                       type="button"
                       onClick={() => {
-                        setStep("email")
+                        setStep("signup")
                         setOtp(["", "", "", "", "", ""])
                       }}
                       className="text-sm text-primary hover:underline"
                     >
-                      Request new OTP
+                      Resend OTP
                     </button>
                   </div>
                 </form>

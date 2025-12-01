@@ -1,261 +1,300 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, UserCheck, UserX, Eye, Edit, Trash2, Search, Filter, Shield, Building2, Calendar, UserPlus } from "lucide-react"
+import { Eye, Edit, Trash2, Search, Building2 } from "lucide-react"
 import { useAuth } from '@/providers/auth-provider'
 import { useCompany } from '@/hooks/useCompany'
-import { Company } from '@/lib/interface';
+import { Company } from '@/lib/interface'
+import { useRouter } from 'next/navigation'
 
-// Local UI user shape used by this page (keeps UI types separate from API types)
-type UIComp = Partial<Company>
-
-
-
-
-export default function ManageUsers() {
+export default function ManageCompanies() {
   const { profile } = useAuth()
-  const { companies, isLoading, error, updateCompany, deleteCompany } = useCompany()
-  const [filteredUsers, setFilteredUsers] = useState<UIComp[]>([])
+  const router = useRouter()
+  const [filteredCompany, setfilteredCompany] = useState<Company[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  // status removed — backend doesn't return a status field in the current API
-  const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [dateFilter, setDateFilter] = useState<string>('all')
+  const [dailyLimitFilter, setDailyLimitFilter] = useState<string>('all')
+  const [singleLimitFilter, setSingleLimitFilter] = useState<string>('all')
+  const [rcnTinFilter, setRcnTinFilter] = useState<string>('all')
 
-  console.log(companies)
+  const { companies, isLoading, deleteCompany } = useCompany()
 
- 
+  // Helper function: Date filtering logic
+  const checkDateRange = (createdAt: string | undefined, filter: string) => {
+    if (!createdAt || filter === 'all') return true
+
+    const date = new Date(createdAt)
+    const now = new Date()
+
+    if (filter === 'today') {
+      return date.toDateString() === now.toDateString()
+    }
+
+    if (filter === 'week') {
+      const oneWeekAgo = new Date()
+      oneWeekAgo.setDate(now.getDate() - 7)
+      return date >= oneWeekAgo
+    }
+
+    if (filter === 'month') {
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+    }
+
+    return true
+  }
 
   useEffect(() => {
-	// 'users' may come from the hook as any[], normalize to UIUser
-	const list: UIComp[] = Array.isArray(companies) ? companies : []
+    const list: Company[] = Array.isArray(companies) ? companies : []
 
-	let filtered = list.filter((comp) => {
-	  const name = (comp.name || '').toString()
-	  const email = (comp.email || '').toString()
+    let filtered = list.filter((comp) => {
+      const search = searchTerm.toLowerCase()
 
-	  const matchesSearch =
-		searchTerm === '' ||
-		name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-		email.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesSearch =
+        searchTerm === '' ||
+        comp.name?.toLowerCase().includes(search) ||
+        comp.email?.toLowerCase().includes(search) ||
+        comp.phone?.toLowerCase().includes(search) ||
+        comp.address?.toLowerCase().includes(search)
 
+      const matchesDate = checkDateRange(comp.created_at, dateFilter)
 
-	  return matchesSearch 
-	})
+      const matchesDailyLimit =
+        dailyLimitFilter === 'all'
+          ? true
+          : dailyLimitFilter === 'low'
+            ? (parseInt(comp.daily_transfer_limit) ?? 0) < 100000
+            : dailyLimitFilter === 'mid'
+              ? (parseInt(comp.daily_transfer_limit) ?? 0) >= 100000 &&
+                (parseInt(comp.daily_transfer_limit) ?? 0) <= 500000
+              : (parseInt(comp.daily_transfer_limit) ?? 0) > 500000
 
-	setFilteredUsers(filtered)
-  }, [companies, searchTerm])
+      const matchesSingleLimit =
+        singleLimitFilter === 'all'
+          ? true
+          : singleLimitFilter === 'low'
+            ? (parseInt(comp.single_transfer_limit) ?? 0) < 10000
+            : singleLimitFilter === 'mid'
+              ? (parseInt(comp.single_transfer_limit) ?? 0) >= 10000 &&
+                (parseInt(comp.single_transfer_limit) ?? 0) <= 50000
+              : (parseInt(comp.single_transfer_limit) ?? 0) > 50000
 
-  const getStatusBadge = (status: string) => {
-	const variants = {
-	  active: "bg-green-100 text-green-700",
-	  inactive: "bg-gray-100 text-gray-700",
-	  pending: "bg-yellow-100 text-yellow-700"
-	}
-	return <Badge variant="outline" className={variants[status as keyof typeof variants]}>{status.toUpperCase()}</Badge>
-  }
+      const matchesRcnTin =
+        rcnTinFilter === 'all'
+          ? true
+          : rcnTinFilter === 'has_rcn'
+            ? !!comp.rcn
+            : rcnTinFilter === 'no_rcn'
+              ? !comp.rcn
+              : rcnTinFilter === 'has_tin'
+                ? !!comp.tin
+                : !comp.tin
 
-  const getRoleBadge = (role: string) => {
-	const variants = {
-	  admin: "bg-purple-100 text-purple-700",
-	  authorizer: "bg-blue-100 text-blue-700",
-	  maker: "bg-orange-100 text-orange-700"
-	}
-	return <Badge variant="outline" className={variants[role as keyof typeof variants]}>{role.charAt(0).toUpperCase() + role.slice(1)}</Badge>
-  }
+      return (
+        matchesSearch &&
+        matchesDate &&
+        matchesDailyLimit &&
+        matchesSingleLimit &&
+        matchesRcnTin
+      )
+    })
 
-  const getUserInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase()
-  const formatDate = (dateString: string) => dateString === 'Never' ? 'Never' : new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    setfilteredCompany(filtered)
+  }, [companies, searchTerm, dateFilter, dailyLimitFilter, singleLimitFilter, rcnTinFilter])
 
-  const handleUserAction = async (action: string, userId?: string | number) => {
-	if (userId === undefined || userId === null) return
-	const idStr = String(userId)
-	try {
-	  switch (action) {
-		case 'activate':
-		  if (updateCompany) await updateCompany({ id: idStr, status: 'active' } as any)
-		  break
-		case 'deactivate':
-		  if (updateCompany) await updateCompany({ id: idStr, status: 'inactive' } as any)
-		  break
-		case 'delete':
-		  if (deleteCompany) await deleteCompany(idStr)
-		  break
-	  }
-	} catch (err) {
-	  console.error('User action failed', err)
-	}
+  const handleCompanyAction = async (action: string, companyId?: string | number) => {
+    if (!companyId) return
+    try {
+      if (action === 'delete') {
+        await deleteCompany(String(companyId))
+      }
+    } catch (err) {
+      console.error('Company action failed', err)
+    }
   }
 
   return (
-	<div className="space-y-6">
-		<div className="flex items-center justify-between">
-			  <div>
-				<h1 className="text-3xl font-bold text-foreground">Manage Companies</h1>
-				{/* <p className="text-muted-foreground">Manage users</p> */}
-			  </div>
-			  {profile?.role === 'maker' && (
-				<Button
-				>
-				  <UserPlus className="w-4 h-4 mr-2" />
-				  Add Company
-				</Button>
-			  )}
-			</div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Manage Companies</h1>
+        {profile?.role === 'maker' && (
+          <Button onClick={() => router.push('/admin/dashboard/clients/onboard')}>
+            Add Company
+          </Button>
+        )}
+      </div>
 
-	  {/* Filters */}
-	  <Card>
-		<CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
-		  <div className="space-y-2">
-			<label>Search Companies</label>
-			<div className="relative">
-			  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-			  <Input
-				value={searchTerm}
-				onChange={(e) => setSearchTerm(e.target.value)}
-				placeholder="Search by name, email, company..."
-				className="pl-10"
-			  />
-			</div>
-		  </div>
+      {/* FILTERS */}
+      <Card>
+        <CardContent className="flex justify-between flex-col md:flex-row gap-4 py-4">
 
-		  {/* Status removed - backend doesn't return a status field currently */}
+          {/* Search */}
+          <div>
+            <label>Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search name, email, phone, address"
+                className="pl-10"
+              />
+            </div>
+          </div>
 
-		  <div className="space-y-2">
-			<label>Role</label>
-			<Select value={roleFilter} onValueChange={setRoleFilter}>
-			  <SelectTrigger><SelectValue placeholder="All Roles" /></SelectTrigger>
-			  <SelectContent>
-				<SelectItem value="all">All</SelectItem>
-				<SelectItem value="initiator">Initiator</SelectItem>
-				<SelectItem value="reviewer">Reviewer</SelectItem>
-				<SelectItem value="maker">Maker</SelectItem>
-			  </SelectContent>
-			</Select>
-		  </div>
+          {/* Daily Limit Filter */}
+          <div>
+            <label>Daily Transfer</label>
+            <Select value={dailyLimitFilter} onValueChange={setDailyLimitFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="low">Below 100k</SelectItem>
+                <SelectItem value="mid">100k - 500k</SelectItem>
+                <SelectItem value="high">Above 500k</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-		  <div className="flex items-end">
-			<Button
-			  variant="outline"
-			  onClick={() => { setSearchTerm(''); setRoleFilter('all') }}
-			  className="w-full"
-			>
-			  Reset Filters
-			</Button>
-		  </div>
-		</CardContent>
-	  </Card>
+          {/* Single Limit Filter */}
+          <div>
+            <label>Single Transfer</label>
+            <Select value={singleLimitFilter} onValueChange={setSingleLimitFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="low">Below 10k</SelectItem>
+                <SelectItem value="mid">10k - 50k</SelectItem>
+                <SelectItem value="high">Above 50k</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-	  {/* Users Table */}
-	  <Card>
-		<Table>
-		  <TableHeader>
-			<TableRow>
-			  <TableHead>User</TableHead>
-			  <TableHead>Role</TableHead>
-			  <TableHead>Company</TableHead>
-			  <TableHead>Phone</TableHead>
-			  <TableHead>Activated</TableHead>
-			  <TableHead className="text-right">Actions</TableHead>
-			</TableRow>
-		  </TableHeader>
-		  <TableBody>
-			{isLoading ? (
-			  // show 5 skeleton rows while loading
-			  Array.from({ length: 5 }).map((_, i) => (
-				<TableRow key={`skeleton-${i}`}>
-				  <TableCell>
-					<div className="flex items-center space-x-3">
-					  <Skeleton className="h-8 w-8 rounded-full" />
-					  <div className="flex flex-col">
-						<Skeleton className="h-4 w-28 mb-2 rounded" />
-						<Skeleton className="h-3 w-40 rounded" />
-					  </div>
-					</div>
-				  </TableCell>
-				  <TableCell>
-					<Skeleton className="h-4 w-16 rounded" />
-				  </TableCell>
-				  <TableCell>
-					<div className="flex items-center gap-2">
-					  <Building2 className="h-4 w-4 text-muted-foreground" />
-					  <Skeleton className="h-4 w-32 rounded" />
-					</div>
-				  </TableCell>
-				  <TableCell>
-					<Skeleton className="h-4 w-24 rounded" />
-				  </TableCell>
-				  <TableCell className="text-sm text-muted-foreground">
-					<Skeleton className="h-4 w-8 rounded" />
-				  </TableCell>
-				  <TableCell className="text-right flex gap-2 justify-end">
-					<div className="flex gap-2">
-					  <Skeleton className="h-8 w-8 rounded" />
-					  <Skeleton className="h-8 w-8 rounded" />
-					  <Skeleton className="h-8 w-8 rounded" />
-					</div>
-				  </TableCell>
-				</TableRow>
-			  ))
-			) : filteredUsers.map((user) => (
-			  <TableRow key={user.id ?? user.email}>
-				<TableCell>
-				  <div className="flex items-center space-x-3">
-					<Avatar className="h-8 w-8">
-					  <AvatarFallback>{getUserInitials(user.name ?? '')}</AvatarFallback>
-					</Avatar>
-					<div>
-					  <div className="font-medium">{user.name ?? '—'}</div>
-					  <div className="text-sm text-muted-foreground">{user.email ?? '—'}</div>
-					</div>
-				  </div>
-				</TableCell>
-				<TableCell>
-				  <div className="flex items-center gap-2">
-					<Building2 className="h-4 w-4 text-muted-foreground" />
-					{user.company_name ?? '—'}
-				  </div>
-				</TableCell>
-				<TableCell>
-				  <div className="flex items-center gap-2">
-					{user.phone_number}
-				  </div>
-				</TableCell>
-				<TableCell className="text-sm text-muted-foreground">
-					{user.activated ? "Yes":"No"}
-				</TableCell>
-				<TableCell className="text-right flex gap-2 justify-end">
-				  <Button variant="ghost" size="sm">
-					<Eye className="w-4 h-4" />
-				  </Button>
-				  <Button variant="ghost" size="sm">
-					<Edit className="w-4 h-4" />
-				  </Button>
-				  <Button variant="ghost" size="sm" onClick={() => handleUserAction('delete', user.id ?? '')} className="text-red-600">
-					<Trash2 className="w-4 h-4" />
-				  </Button>
-				</TableCell>
-			  </TableRow>
-			))}
-			
-		  </TableBody>
-		</Table>
+          {/* RCN/TIN Filter */}
+          <div>
+            <label>RCN / TIN</label>
+            <Select value={rcnTinFilter} onValueChange={setRcnTinFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="has_rcn">Has RCN</SelectItem>
+                <SelectItem value="no_rcn">No RCN</SelectItem>
+                <SelectItem value="has_tin">Has TIN</SelectItem>
+                <SelectItem value="no_tin">No TIN</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-		{filteredUsers?.length === 0 &&  (
-		  <div className="text-center py-12">
-			<Building2 className="w-14 h-14 text-red-500  mx-auto mb-4" />
-			<h3 className="text-lg font-semibold text-muted-foreground mb-2">No companies found</h3>
-			<p className="text-sm text-muted-foreground">Try adjusting your search or filter criteria</p>
-		  </div>
-		)}
-	  </Card>
+        </CardContent>
+      </Card>
 
-	</div>
+
+
+      {/* Date Filter Buttons */}
+     {/* Date Filter Buttons */}
+<div className="flex gap-2 mb-4">
+  {['All', 'Today', 'This Week', 'This Month'].map((label) => (
+    <Button
+      key={label}
+      variant={dateFilter === label.toLowerCase() ? 'default' : 'outline'}
+      size="sm"
+      onClick={() => setDateFilter(label.toLowerCase())}
+    >
+      {label}
+    </Button>
+  ))}
+</div>
+
+
+      {/* TABLE */}
+      <Card className='px-2'>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Company Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
+              {/* <TableHead>Address</TableHead> */}
+              {/* <TableHead>RCN</TableHead>
+              <TableHead>TIN</TableHead> */}
+              <TableHead>Account No</TableHead>
+              <TableHead>Daily Limit</TableHead>
+              <TableHead>Single Limit</TableHead>
+              <TableHead>Created At</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  {Array.from({ length: 11 }).map((_, j) => (
+                    <TableCell key={j}>
+                      <Skeleton className="h-4 w-32 rounded" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              filteredCompany.map((company) => (
+                <TableRow key={company.id}>
+                  <TableCell>{company.name ?? '—'}</TableCell>
+                  <TableCell>{company.email ?? '—'}</TableCell>
+                  <TableCell>{company.phone ?? '—'}</TableCell>
+                  {/* <TableCell>{company.address ?? '—'}</TableCell>
+                  <TableCell>{company.rcn ?? '—'}</TableCell>
+                  <TableCell>{company.tin ?? '—'}</TableCell> */}
+                  <TableCell>{company.account_no ?? '—'}</TableCell>
+                  <TableCell>{company.daily_transfer_limit?.toLocaleString() ?? '—'}</TableCell>
+                  <TableCell>{company.single_transfer_limit?.toLocaleString() ?? '—'}</TableCell>
+                  <TableCell>{company.created_at ? new Date(company.created_at).toLocaleDateString() : '—'}</TableCell>
+
+                  <TableCell className="text-right flex gap-2 justify-end">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => router.push(`/admin/dashboard/clients/${company.id}`)}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCompanyAction('delete', company.id)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+
+        {filteredCompany.length === 0 && !isLoading && (
+          <div className="text-center py-12">
+            <Building2 className="w-14 h-14 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-muted-foreground">No companies found</h3>
+            <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
+          </div>
+        )}
+      </Card>
+    </div>
   )
 }

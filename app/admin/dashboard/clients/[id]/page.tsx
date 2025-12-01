@@ -3,219 +3,200 @@
 import React, { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { User, Mail, Building2, Calendar, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react'
-import { useParams } from 'next/navigation'
-import { Company, User as UserType } from '@/lib/interface'
-
-interface ClientData extends Company {
-  totalUsers: number
-  totalTransactions: number
-  balance: number
-  currency: string
-  lastActivity: string
-}
+import { Skeleton } from '@/components/ui/skeleton'
+import { Loader2, ArrowLeft, Mail, Phone, MapPin, FileText, DollarSign, Building2 } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { Company } from '@/lib/interface'
+import { useCompany } from '@/hooks/useCompany'
+import { formatDate, formatCurrency } from '@/lib/utils'
 
 export default function ClientDetailsPage() {
   const { id } = useParams()
-  const [client, setClient] = useState<ClientData | null>(null)
-  const [users, setUsers] = useState<UserType[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+  const { companies, isLoading, deleteCompany } = useCompany()
+  const [company, setCompany] = useState<Company | null>(null)
 
   useEffect(() => {
-    const fetchClientData = async () => {
-      try {
-        // Fetch companies
-        const companiesRes = await fetch('/admin/api/mock/companies')
-        const companiesData = await companiesRes.json()
-        const company = companiesData.data.find((c: Company) => c.id === id)
-
-        if (!company) {
-          setError('Company not found')
-          return
-        }
-
-        // Fetch users
-        const usersRes = await fetch('/admin/api/mock/users')
-        const usersData = await usersRes.json()
-        const companyUsers = usersData.data.filter((u: UserType) => u.companyId === company.id)
-
-        // Mock additional data
-        const clientData: ClientData = {
-          ...company,
-          totalUsers: companyUsers.length,
-          totalTransactions: Math.floor(Math.random() * 200) + 50, // Mock
-          balance: Math.floor(Math.random() * 50000000) + 10000000, // Mock
-          currency: 'NGN',
-          lastActivity: companyUsers.length > 0 ? companyUsers[0].lastLogin : company.createdAt
-        }
-
-        setClient(clientData)
-        setUsers(companyUsers)
-      } catch (err) {
-        setError('Failed to load client data')
-      } finally {
-        setLoading(false)
-      }
+    if (companies && id) {
+      const found = companies.find((c: Company) => String(c.id) === String(id))
+      setCompany(found ?? null)
     }
+  }, [companies, id])
 
-    if (id) fetchClientData()
-  }, [id])
+  const handleDelete = async () => {
+    if (!company || !deleteCompany) return
+    await deleteCompany(String(company.id))
+    router.back()
+  }
 
-  if (loading) {
+ 
+
+  if (isLoading || !company) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="p-4 md:p-8 space-y-6">
+        <Skeleton className="h-8 w-48" /> {/* Back button skeleton */}
+        <Skeleton className="h-24 w-full rounded-lg" /> {/* Header card skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-lg" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-16 w-full rounded-lg" /> {/* Additional details skeleton */}
+        <div className="flex gap-4 justify-end">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-32 rounded" />
+          ))}
+        </div>
       </div>
-    )
-  }
-
-  if (error || !client) {
-    return (
-      <div className="p-4 md:p-8">
-        <Card>
-          <CardContent className="text-center py-12">
-            <p className="text-red-500">{error || 'Client not found'}</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
-
-  function formatDate(dateString: string) {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  function getStatusBadge(status: string) {
-    const variants: Record<string, string> = {
-      active: 'bg-green-100 text-green-700 border-green-200',
-      inactive: 'bg-gray-100 text-gray-700 border-gray-200',
-      pending: 'bg-orange-100 text-orange-700 border-orange-200',
-    }
-    return (
-      <Badge variant="outline" className={variants[status] || 'bg-gray-100 text-gray-700 border-gray-200'}>
-        {status.toUpperCase()}
-      </Badge>
     )
   }
 
   return (
     <div className="p-4 md:p-8 space-y-8">
-      {/* Client Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Client</CardTitle>
-            <Building2 className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback>{client.name.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
-              </Avatar>
+      {/* Back Button */}
+      <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+        <ArrowLeft className="w-4 h-4" />
+        Back to Companies
+      </Button>
+
+      {/* Company Header */}
+      <Card className="border-2 border-blue-100 bg-gradient-to-r from-blue-50 to-transparent">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Building2 className="w-10 h-10 text-blue-600" />
               <div>
-                <div className="font-bold text-lg">{client.name}</div>
-                <div className="text-xs text-muted-foreground">ID: {client.id}</div>
+                <CardTitle className="text-3xl">{company.name}</CardTitle>
+                <CardDescription className="text-sm mt-1">
+                  Company ID: {company.id}
+                </CardDescription>
+                <CardDescription className="text-sm mt-1">
+                  Created At: {formatDate(company.created_at)}
+                </CardDescription>
+                
               </div>
             </div>
-            <div className="mt-2 flex items-center gap-2 text-sm">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              {client.email}
-            </div>
-            <div className="mt-1 flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              Joined {formatDate(client.createdAt)}
-            </div>
-            <div className="mt-2">{getStatusBadge('active')}</div>
-          </CardContent>
-        </Card>
+            <Badge className="bg-green-100 text-green-700 border-green-200">Active</Badge>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Key Information Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Users</CardTitle>
-            <User className="h-5 w-5 text-muted-foreground" />
+          <CardHeader className="pb-3 flex items-center gap-2">
+            <Mail className="w-5 h-5 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Email</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{client.totalUsers}</div>
-            <div className="text-xs text-muted-foreground">Total users</div>
+            <p className="font-semibold break-all">{company.email || 'N/A'}</p>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Balance</CardTitle>
-            <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
+          <CardHeader className="pb-3 flex items-center gap-2">
+            <Phone className="w-5 h-5 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Phone</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(client.balance)}</div>
-            <div className="text-xs text-muted-foreground">Available ({client.currency})</div>
+            <p className="font-semibold">{company.phone || 'N/A'}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Address</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-semibold text-sm">{company.address || 'N/A'}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Users Table */}
+      {/* Compliance & Registration */}
       <Card>
         <CardHeader>
-          <CardTitle>Company Users</CardTitle>
-          <CardDescription>Users associated with {client.name}</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Compliance & Registration
+          </CardTitle>
+          <CardDescription>Tax and registration details</CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Login</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="font-medium">{user.name}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(user.status)}</TableCell>
-                  <TableCell>{formatDate(user.lastLogin)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      View
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-muted-foreground mb-1">RCN (Registration)</p>
+              <p className="font-mono text-lg font-semibold">{company.rcn || 'Not provided'}</p>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-muted-foreground mb-1">TIN (Tax ID)</p>
+              <p className="font-mono text-lg font-semibold">{company.tin || 'Not provided'}</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Banking Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5" />
+            Banking Information
+          </CardTitle>
+          <CardDescription>Account and transfer limits</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-4 border rounded-lg">
+              <p className="text-sm text-muted-foreground mb-2">Account Number</p>
+              <p className="font-mono text-lg font-semibold break-all">{company.account_no || 'N/A'}</p>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <p className="text-sm text-muted-foreground mb-2">Daily Transfer Limit</p>
+              <p className="font-mono text-lg font-semibold">{formatCurrency(company.daily_transfer_limit)}</p>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <p className="text-sm text-muted-foreground mb-2">Single Transfer Limit</p>
+              <p className="font-mono text-lg font-semibold">{formatCurrency(company.single_transfer_limit)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Additional Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Additional Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+  
+        </CardContent>
+      </Card>
+
+      {/* Action Buttons */}
+      <div className="flex gap-4 justify-end">
+        <Button variant="outline" onClick={() => router.back()}>
+          Close
+        </Button>
+        <Button className="gap-2">
+          Edit Company
+        </Button>
+        <Button variant="destructive" onClick={handleDelete}>
+          Delete Company
+        </Button>
+      </div>
     </div>
   )
 }

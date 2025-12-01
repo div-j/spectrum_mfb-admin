@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Users,
   UserPlus,
@@ -19,21 +19,112 @@ import {
   UserX,
   Search,
   Filter,
-  MoreHorizontal,
   Shield,
   Building2,
-  Calendar
 } from "lucide-react"
-import {  mockMetrics, mockCompanies, admins } from '@/lib/mock-data'
+import { mockMetrics, mockCompanies, admins } from '@/lib/mock-data'
 import type { User as AdminUser } from '@/lib/interface'
 import CreateUserModal from './users/components/create-user-modal'
 import { useUsers } from '@/hooks/useUsers'
 import { UserResponse } from '@/lib/interface'
 
-// Using shared mock data from admin/lib/mock-data
-
-// Use UserResponse from interface
 type UIUser = Partial<UserResponse>
+
+// Skeleton Components
+const StatCardSkeleton = () => (
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="h-4 w-4" />
+    </CardHeader>
+    <CardContent>
+      <Skeleton className="h-8 w-16 mb-2" />
+      <Skeleton className="h-3 w-32" />
+    </CardContent>
+  </Card>
+)
+
+const TableRowSkeleton = () => (
+  <TableRow>
+    <TableCell>
+      <div className="flex items-center space-x-3">
+        <Skeleton className="h-8 w-8 rounded-full" />
+        <div className="space-y-1">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-48" />
+        </div>
+      </div>
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-6 w-16 rounded-full" />
+    </TableCell>
+    <TableCell>
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-4 w-32" />
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-4 w-8" />
+    </TableCell>
+    <TableCell className="text-right">
+      <div className="flex items-center justify-end gap-2">
+        <Skeleton className="h-8 w-8" />
+        <Skeleton className="h-8 w-8" />
+        <Skeleton className="h-8 w-8" />
+      </div>
+    </TableCell>
+  </TableRow>
+)
+
+const FiltersSkeleton = () => (
+  <Card>
+    <CardHeader>
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-5 w-5" />
+        <Skeleton className="h-6 w-32" />
+      </div>
+    </CardHeader>
+    <CardContent>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="md:col-span-2 flex items-end">
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>User</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Company</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Activated</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <TableRowSkeleton key={index} />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </CardContent>
+  </Card>
+)
 
 export default function AdminDashboard() {
   const { users, isLoading, error, updateUser, deleteUser } = useUsers()
@@ -107,11 +198,26 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground">Loading admin dashboard...</p>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <Skeleton className="h-10 w-24" />
         </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+
+        {/* Filters and Table Skeleton */}
+        <FiltersSkeleton />
       </div>
     )
   }
@@ -326,7 +432,3 @@ export default function AdminDashboard() {
     </div>
   )
 }
-
-
-
-

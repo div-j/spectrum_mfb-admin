@@ -26,7 +26,7 @@ export default function SideBar() {
 
   const handleLogout = async () => {
     await signOut()
-    router.push("/admin/login")
+    router.push("/auth/login")
   }
 
   const getLinkClassName = (href: string) => {

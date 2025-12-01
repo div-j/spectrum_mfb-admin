@@ -1,4 +1,7 @@
 
+
+
+
 export interface Company {
   name: string
   email: string
@@ -8,7 +11,11 @@ export interface Company {
   tin: string 
   account_no: string
   daily_transfer_limit: string
-  single_transfer_limit: string
+  single_transfer_limit: string,
+  created_at?: string,
+  id?: number
+
+  
 }
 
 

@@ -1,10 +1,21 @@
 'use client'
 
 import { adminProfile } from '@/lib/interface'
+import axios from 'axios'
 import { createContext, useContext, useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import Cookies from 'js-cookie'
 
-// Auth storage keys
-const LOCAL_SESSION_KEY = 'admin_session'
+const API_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY
+console.log("Using API Key:", API_KEY)
+const api = axios.create({
+  baseURL: '/api/v1/admin',
+  headers: { 
+    'Content-Type': 'application/json',
+    'spectrumz-mobile': API_KEY,
+    
+   },
+})
 
 type AdminUser = {
   id: string
@@ -12,210 +23,201 @@ type AdminUser = {
   name: string
   role: string
   phone: string
-  // status: string
 }
 
 const adminData = {
-    id: "admin-001",
-    name: "Ebite Zion",
-    email: "divinejohn65@gmail.com",
-    role: "maker", // Admin 1
-    phone: "+234 803 555 9921",
+  id: "admin-001",
+  name: "Ebite Zion",
+  email: "divinejohn65@gmail.com",
+  role: "maker",
+  phone: "+234 803 555 9921",
+}
+
+interface adminResp {
+  data: string,
+  status: string,
+  status_code: string
 }
 
 interface AuthContextType {
   user: AdminUser | null
   profile: adminProfile | null
+  token: string | null
+  role: string | null // Add role to interface
   loading: boolean
-  signInWithPassword: (email: string, password: string) => Promise<{ error?: any }>
-  signInWithOtp: (email: string) => Promise<{ error?: any }>
-  verifyOtp: (email: string, token: string) => Promise<{ error?: any }>
-  signOut: () => Promise<void>
+  error: string | null
+  signUp: (email: string, password: string, role: "admin1" | "admin2") => Promise<adminResp | null> // Fix type
+  activateAdmin: (email: string, otp: string) => Promise<adminResp | null>
+  login: (email: string, password: string) => Promise<adminResp | null>
+  verifyOtp: (email: string, password: string, otp: string) => Promise<void>
+  signOut: () => void,
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-function setSession(user: AdminUser | null) {
-  if (user) localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({ userId: user.id, user }))
-  else localStorage.removeItem(LOCAL_SESSION_KEY)
-}
-
-function getSessionUser(): AdminUser | null {
-  try {
-    const raw = localStorage.getItem(LOCAL_SESSION_KEY)
-    if (!raw) return null
-    const obj = JSON.parse(raw)
-    return obj.user ?? null
-  } catch {
-    return null
-  }
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null)
   const [profile, setProfile] = useState<adminProfile | null>(null)
+  const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [role, setRole] = useState<string | null>(null)
 
-  const fetchProfile = async (userId: string) => {
+   // Sign-up Admin
+  const signUp = async (email: string, password: string, role: "admin1" | "admin2"): Promise<adminResp | null> => {
+    setLoading(true)
+    setError(null)
     try {
-      const response = await fetch(`/admin/api/administrator/profile?id=${userId}`)
-      const data = await response.json()
-      
-      if (data.success) {
-        const adminData = data.data.admin
-        const profileData: adminProfile = {
-          id: adminData.id,
-          name: adminData.name,
-          email: adminData.email,
-          role: adminData.role,
-          phone: adminData.phone
-        }
-        return profileData
+      const res = await api.post('/sign_up', { email, password, role })
+      if (res.data.status_code === "00") {
+        toast.success('Sign-up successful! Please check your email for the OTP to activate your account.')
+        return res.data
+      } else {
+        setError(res.data.status || res.data.error || 'Sign-up failed') // Fix error handling
+        toast.error(res.data.status || res.data.error || 'Sign-up failed')
+        return null
       }
+    } catch (err: any) {
+      setError(err.response?.data?.error_msg?.email || 'Sign-up failed')
+      toast.error(err.response?.data?.error_msg?.email || 'Sign-up failed')
       return null
-    } catch (error) {
-      console.error('Failed to fetch profile:', error)
-      return null
-    }
-  }
-
-  const signInWithPassword = async (email: string, password: string) => {
-    try {
-      const response = await fetch('/admin/api/administrator/signin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        return { error: data.error || 'Sign in failed' }
-      }
-
-      const adminUser = data.data.admin
-      setUser(adminUser)
-      setSession(adminUser)
-      
-      const profileData = await fetchProfile(adminUser.id)
-      setProfile(profileData)
-
-      return {}
-    } catch (error) {
-      return { error: 'Network error' }
-    }
-  }
-
-  const signInWithOtp = async (email: string) => {
-    try {
-      const response = await fetch('/admin/api/administrator/otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        return { error: data.error || 'OTP request failed' }
-      }
-
-      // In development, log the OTP for testing
-      if (process.env.NODE_ENV === 'development' && data.otp) {
-        console.log(`[DEV] OTP for ${email}: ${data.otp}`)
-      }
-
-      return {}
-    } catch (error) {
-      return { error: 'Network error' }
-    }
-  }
-
-  const verifyOtp = async (email: string, token: string) => {
-    try {
-      const response = await fetch('/admin/api/administrator/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, otp: token }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        return { error: data.error || 'OTP verification failed' }
-      }
-
-      const adminUser = data.data.admin
-      setUser(adminUser)
-      setSession(adminUser)
-      
-      const profileData = await fetchProfile(adminUser.id)
-      setProfile(profileData)
-
-      return {}
-    } catch (error) {
-      return { error: 'Network error' }
-    }
-  }
-
-  const signOut = async () => {
-    try {
-      await fetch('/admin/api/administrator/signout', {
-        method: 'POST',
-      })
-    } catch (error) {
-      console.error('Signout API call failed:', error)
     } finally {
-      setUser(null)
-      setProfile(null)
-      setSession(null)
+      setLoading(false)
     }
+  }
+
+   // Activate Admin with OTP
+const activateAdmin = async (email: string, otp: string): Promise<adminResp | null> => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await api.post('/activate', { email, otp })
+
+      if (res.data.status_code === "00") {
+        toast.success('Activation successful! Your account is now active.')
+        return res.data
+      } else {
+        setError(res.data.status || res.data.error || 'Activation failed') // Fix error handling
+        toast.error(res.data.status || res.data.error || 'Activation failed')
+        return null
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error_msg || 'Activation failed')
+      toast.error(err.response?.data?.error_msg || 'Activation failed') // Fix error access
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  // Login Admin (sends OTP email)
+  const login = async (email: string, password: string): Promise<adminResp | null> => { // Fix return type
+    setLoading(true)
+    setError(null)
+    try {
+      const resp = await api.post('/login', { email, password })
+      if (resp.data.status_code === "00") {
+        toast.success('Login successful! Please check your email for the OTP to verify your account.')
+        return resp.data
+      } else {
+        setError(resp.data.error?.email || resp.data.status || 'Login failed')
+        toast.error(resp.data.error?.email || resp.data.status || 'Login failed')
+        return null
+      }
+    } catch (err: any) {
+      console.log(err)
+      setError(err?.response?.data?.error?.email || err?.response?.data?.error_msg || 'Login failed')
+      toast.error('Login failed')
+      return null 
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Verify OTP and get final JWT token
+   // Verify OTP and get final JWT token
+  const verifyOtp = async (email: string, password: string, otp: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await api.post('/authentication', { email, password, otp })
+      
+      console.log(response)
+      if(response.status == 201) {
+
+        const token = response.data.data.authentication_token.token
+        const userRole = response.data.data.role
+        
+        // Set state first
+        setToken(token)
+        setRole(userRole)
+        
+        // Then set cookies
+        Cookies.set('admin_token', token, { expires: 1 })
+        Cookies.set('user_role', userRole, { expires: 1 })
+        
+        console.log('Token set:', token)
+        console.log('Role set:', userRole)
+
+        toast.success('OTP verification successful! You are now logged in.')
+
+      } else {
+        setError(response?.data.status)
+        toast.error(response?.data.status || 'OTP verification failed')
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.status || 'OTP verification failed')
+      toast.error('OTP verification failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /** SIGN OUT */
+  const signOut = () => {
+    setUser(null)
+    setProfile(null)
+    setToken(null)
+    setRole(null)
+    Cookies.remove('admin_token')
+    Cookies.remove('user_role') // Remove role cookie
+    setLoading(false)
   }
 
   useEffect(() => {
-    // Initialize from localStorage session
-    const init = async () => {
-      setLoading(true)
-      const sessionUser = getSessionUser()
-      if (sessionUser) {
-        setUser(sessionUser)
-        const profileData = await fetchProfile(sessionUser.id)
-        // use a properly-typed adminProfile for the initial mock/profile fallback
-        setProfile({
-          id: adminData.id,
-          name: adminData.name,
-          email: adminData.email,
-          role: adminData.role as 'maker' | 'authorizer',
-          phone: adminData.phone
-        })
-      }
-       setProfile({
-          id: adminData.id,
-          name: adminData.name,
-          email: adminData.email,
-          role: adminData.role as 'maker' | 'authorizer',
-          phone: adminData.phone
-        })
-      
-      setLoading(false)
+    const savedToken = Cookies.get('admin_token')
+    const savedRole = Cookies.get('user_role') // Retrieve role from cookie
+    
+    if (savedToken) {
+      setToken(savedToken)
     }
-    init()
+    if (savedRole) {
+      setRole(savedRole)
+    }
+    
+    // Set default admin profile for dev/fallback
+    setProfile({
+      id: adminData.id,
+      name: adminData.name,
+      email: adminData.email,
+      role: adminData.role as 'maker' | 'authorizer',
+      phone: adminData.phone,
+    })
+    setLoading(false)
   }, [])
 
-  const value: AuthContextType = { 
-    user, 
-    profile, 
-    loading, 
-    signInWithPassword,
-    signInWithOtp, 
-    verifyOtp, 
-    signOut 
+  const value: AuthContextType = {
+    user,
+    profile,
+    token,
+    role, // Add role to value
+    loading,
+    error,
+    signUp,
+    activateAdmin,
+    login,
+    verifyOtp,
+    signOut,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -3,6 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Company } from "@/lib/interface";
 import axios from "axios";
+import { useAuth } from "@/providers/auth-provider";
+import Cookies from 'js-cookie';
+const API_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY;
 
 
 export const useCompany = (
@@ -10,7 +13,11 @@ export const useCompany = (
   page: number = 1,
   limit: number = 10
 ) => {
+   const { token } = useAuth();
   const queryClient = useQueryClient();
+   // Get token from auth context or cookies
+  const authToken =  Cookies.get('admin_token');
+  console.log("Auth Token in useCompany:", authToken);
 
   // 1️⃣ Fetch companies
   const { data, isLoading, error } = useQuery({
@@ -25,9 +32,11 @@ export const useCompany = (
 
         // Call API
         const { data } = await axios.get(`/api/v1/companies?${params.toString()}`, {
+          withCredentials: true,
           headers: {
             "Content-Type": "application/json",
-            // Authorization: `Bearer ${localStorage.getItem("token")}`, // adjust if token is from context
+            Authorization: `Bearer ${authToken}`, 
+            'spectrumz-mobile': API_KEY,
           },
         });
 
@@ -41,6 +50,7 @@ export const useCompany = (
         throw err;
       }
     },
+    enabled: !!authToken, // only run if token is available
     
   });
 
@@ -48,7 +58,14 @@ export const useCompany = (
   const createCompanyMutation = useMutation({
     mutationFn: async (newCompany: Company) => {
         console.log("Payload to gateway:", newCompany);
-        const { data } = await axios.post("/api/v1/admin/register/company", newCompany);
+        const { data } = await axios.post("/api/v1/admin/register/company", newCompany,
+          {
+            headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`
+          },
+          }
+        );
         // toast.success(`Company created successfully!`);
         return data;
    
@@ -96,7 +113,7 @@ export const useCompany = (
   });
 
   return {
-    companies: data?.companies,
+    companies: data?.data?.companies,
     isLoading,
     error,
     createCompany: createCompanyMutation.mutateAsync,
