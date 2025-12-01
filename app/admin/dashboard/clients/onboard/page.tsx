@@ -65,11 +65,9 @@ export default function CreateCorporateUserFlow() {
           daily_transfer_limit: data.daily_transfer_limit || '',
           single_transfer_limit: data.single_transfer_limit || ''
         })
-        // Log the successful response so it's visible in the browser console
-        console.log('createCompany response:', resp)
       setCurrentStep('success')
     } catch (err) {
-      console.error('Failed to create company', err)
+      // Failed to create company - error already handled by mutation
     }
   }
 

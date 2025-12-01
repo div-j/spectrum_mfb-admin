@@ -114,7 +114,7 @@ export default function ManageCompanies() {
         await deleteCompany(String(companyId))
       }
     } catch (err) {
-      console.error('Company action failed', err)
+      // Company action failed - error already handled by mutation
     }
   }
 

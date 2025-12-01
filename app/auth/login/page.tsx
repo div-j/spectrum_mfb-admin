@@ -24,7 +24,6 @@ export default function AdminLogin() {
     e.preventDefault()
     
       const result = await login(email, password)
-      console.log("Login result:", result)
       if(result){
       setStep("otp") // Only proceed to next step on success
       }

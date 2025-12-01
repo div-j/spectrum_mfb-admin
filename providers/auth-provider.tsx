@@ -7,7 +7,6 @@ import { toast } from 'sonner'
 import Cookies from 'js-cookie'
 
 const API_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY
-console.log("Using API Key:", API_KEY)
 const api = axios.create({
   baseURL: '/api/v1/admin',
   headers: { 
@@ -123,7 +122,6 @@ const activateAdmin = async (email: string, otp: string): Promise<adminResp | nu
         return null
       }
     } catch (err: any) {
-      console.log(err)
       setError(err?.response?.data?.error?.email || err?.response?.data?.error_msg || 'Login failed')
       toast.error('Login failed')
       return null 
@@ -140,7 +138,6 @@ const activateAdmin = async (email: string, otp: string): Promise<adminResp | nu
     try {
       const response = await api.post('/authentication', { email, password, otp })
       
-      console.log(response)
       if(response.status == 201) {
 
         const token = response.data.data.authentication_token.token

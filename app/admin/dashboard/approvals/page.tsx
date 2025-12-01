@@ -16,7 +16,6 @@ export default function PendingApprovalsPage() {
 
   // Fetch only inactive users
   const { users, isLoading } = useUsers("inactive");
-  console.log(users)
 
   const pending = (users ?? []).filter(
     (u: any) =>

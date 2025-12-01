@@ -24,8 +24,6 @@ export default function SideBar() {
   const router = useRouter()
   const pathname = usePathname()
   const [isModalOpen, setIsModalOpen] = React.useState(false)  // Add state for modal
-  console.log("User Role in SideBar:", user);
-
 
   const handleLogout = async () => {
      signOut()
@@ -42,8 +40,7 @@ export default function SideBar() {
 
   const getUserInitials = () => user?.email?.split(" ").map(n => n[0]).join("").toUpperCase() || "U"
   const getUserName = () => user?.email || "Admin"
-  const getUserRole = () => user?.role?.toUpperCase() 
-  console.log(getUserRole())
+  const getUserRole = () => user?.role?.toUpperCase()
 
   return (
     <div className="w-64 bg-card border-r border-border flex flex-col h-full">

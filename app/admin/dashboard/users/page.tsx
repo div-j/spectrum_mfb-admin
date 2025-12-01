@@ -28,7 +28,6 @@ export default function ManageUsers() {
     page,
     limit
   );
-  console.log(users)
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -56,7 +55,7 @@ export default function ManageUsers() {
           break;
       }
     } catch (err) {
-      console.error("User action failed", err);
+      // User action failed - error already handled by mutation
     }
   };
 

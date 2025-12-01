@@ -107,14 +107,11 @@ export default function CreateUserModal({
         ],
       };
 
-      console.log("Payload sent to backend:", payload);
-
       await createUser(payload);
 
       toast.success("User created successfully!");
       setCurrentStep("success");
     } catch (error: any) {
-      console.error("❌ Full error:", error.response?.data || error.message);
       toast.error(
         error.response?.data?.message ||
           "Failed to create user. Please try again."

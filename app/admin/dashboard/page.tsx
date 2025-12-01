@@ -175,10 +175,10 @@ export default function AdminDashboard() {
           break
         case 'delete':
           if (deleteUser) await deleteUser(idStr)
-          break
+          break;
       }
     } catch (err) {
-      console.error('User action failed', err)
+      // User action failed - error already handled by mutation
     }
   }
 

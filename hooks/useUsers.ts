@@ -58,9 +58,6 @@ export const useUsers = (
   // 2️⃣ Create user
   const createUserMutation = useMutation({
     mutationFn: async (newUser: User) => {
-
-      
-        console.log("Payload to gateway:", newUser);
         const { data } = await axios.post("/api/v1/admin/register/corporate", newUser,
           {
           headers: {
@@ -78,7 +75,6 @@ export const useUsers = (
     queryClient.invalidateQueries({ queryKey: ["users", companyId] });
   },
   onError: (err: any) => {
-    console.error("❌ Full error:", err.response?.data || err.message);
     toast.error(err.response?.data?.message || "Failed to create user");
   },
   });

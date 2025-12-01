@@ -43,7 +43,6 @@ export const useCompany = (
         return data
 
       } catch (err: any) {
-        console.error("❌ Failed to fetch companies:", err.response?.data || err.message);
         toast.error(err.response?.data?.message || "Failed to fetch companies");
         throw err;
       }
@@ -55,7 +54,6 @@ export const useCompany = (
   // 2️⃣ Create company
   const createCompanyMutation = useMutation({
     mutationFn: async (newCompany: Company) => {
-        console.log("Payload to gateway:", newCompany);
         const { data } = await axios.post("/api/v1/admin/register/company", newCompany,
           {
             headers: {
@@ -73,7 +71,6 @@ export const useCompany = (
       queryClient.invalidateQueries({ queryKey: ["companies"] });
     },
     onError: (err: any) => {
-      console.error("❌ Full error:", err.response?.data || err.message);
       toast.error(err.response?.data?.message || "Failed to create company");
     }
   });
