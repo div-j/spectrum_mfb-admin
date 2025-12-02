@@ -116,7 +116,9 @@ export const useUsers = (
       const { data } = await axios.post("/api/v1/admin/users/status", { user_id: userId, activated }, {
         headers: {
           "Content-Type": "application/json",
-          // Authorization: `Bearer ${authToken}`,
+          Authorization: `Bearer ${authToken}`,
+          'spectrumz-mobile': API_KEY,
+
         },
       });
       return data;
