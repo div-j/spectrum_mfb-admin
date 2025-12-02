@@ -12,6 +12,7 @@ import { User, CorporateUser, UserResponse } from '@/lib/interface'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { useUsers } from '@/hooks/useUsers'
 import { toast } from 'sonner'
+import { useAuth } from '@/providers/auth-provider'
 
 export default function UserDetailsPage() {
   const { id } = useParams()
@@ -20,6 +21,7 @@ export default function UserDetailsPage() {
   const [user, setUser] = useState<UserResponse | null>(null)
   const [currentStep, setCurrentStep] = useState<'confirm' | 'success' | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const {user:profile} = useAuth()
 
   useEffect(() => {
     if (users && id) {
@@ -226,12 +228,15 @@ export default function UserDetailsPage() {
         <Button variant="outline" onClick={() => router.back()}>
           Close
         </Button>
+       {profile?.role =="admin2" &&(<>
         <Button variant="destructive" onClick={handleDeactivate} disabled={isUpdatingStatus}>
           {isUpdatingStatus ? 'Processing...' : 'Deactivate User'}
         </Button>
         <Button onClick={handleActivate} disabled={isUpdatingStatus}>
           {isUpdatingStatus ? 'Processing...' : 'Approve User'}
         </Button>
+        </>)}
+
       </div>
 
       {/* Approval Modal */}

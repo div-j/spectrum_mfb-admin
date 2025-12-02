@@ -43,10 +43,7 @@ export const useUsers = (
           },
         });
 
-        // console.log(data.users)
-
-        // API may return a wrapped payload like { data: { users: [...] } }
-        // Normalize to return the users array when possible, otherwise return the raw data
+    
         return data
     
     },
