@@ -1,13 +1,11 @@
-
-  /* config options here */
-  module.exports = {
+module.exports = {
+  output: 'standalone', // Add this line for Docker deployment
   async rewrites() {
     return [
       {
-        source: '/api/:path*', // The incoming request path pattern from your frontend
-        destination: 'https://gateway.spectrumpay.com.ng:4010/:path*', // The actual destination of the external API
+        source: '/api/:path*',
+        destination: 'https://gateway.spectrumpay.com.ng:4010/:path*',
       },
     ];
   },
 };
-
