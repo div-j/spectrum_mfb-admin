@@ -155,7 +155,6 @@ const activateAdmin = async (email: string, otp: string): Promise<adminResp | nu
         Cookies.set('admin_token', token, { expires: 1 })
         Cookies.set('admin_user', JSON.stringify(userData), { expires: 1 })
 
-        console.log('Token set:', token)
 
         toast.success('OTP verification successful! You are now logged in.')
 

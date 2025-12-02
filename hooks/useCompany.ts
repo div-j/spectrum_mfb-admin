@@ -34,8 +34,8 @@ export const useCompany = (
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",
-            // Authorization: `Bearer ${authToken}`, 
-            // 'spectrumz-mobile': API_KEY,
+            Authorization: `Bearer ${authToken}`, 
+            'spectrumz-mobile': API_KEY,
           },
         });
 
@@ -58,11 +58,12 @@ export const useCompany = (
           {
             headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`
+            Authorization: `Bearer ${authToken}`,
+            'spectrumz-mobile': API_KEY,
+
           },
           }
         );
-        // toast.success(`Company created successfully!`);
         return data;
    
     },

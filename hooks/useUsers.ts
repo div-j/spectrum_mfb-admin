@@ -20,7 +20,6 @@ export const useUsers = (
   const queryClient = useQueryClient();
    // Get token from auth context or cookies
   const authToken = Cookies.get('admin_token');
-  console.log("auth token", authToken)
 
   // 1️⃣ Fetch users
   const { data, isLoading, error } = useQuery({
@@ -39,9 +38,8 @@ export const useUsers = (
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",
-            //  Authorization: `Bearer ${authToken}`,
-            // 'spectrumz-mobile': API_KEY,
-            // Authorization: `Bearer ${localStorage.getItem("token")}`, // adjust if token is from context
+             Authorization: `Bearer ${authToken}`,
+            'spectrumz-mobile': API_KEY,
           },
         });
 
@@ -64,7 +62,8 @@ export const useUsers = (
           headers: {
             "Content-Type": "application/json",
              Authorization: `Bearer ${authToken}`,
-            // Authorization: `Bearer ${localStorage.getItem("token")}`, // adjust if token is from context
+            'spectrumz-mobile': API_KEY,
+
           },
         }
         );
